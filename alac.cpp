@@ -76,14 +76,14 @@ void alac_free(alac_file *alac) {
 
 void alac_allocate_buffers(alac_file *alac)
 {
-    alac->predicterror_buffer_a = malloc(alac->setinfo_max_samples_per_frame * 4);
-    alac->predicterror_buffer_b = malloc(alac->setinfo_max_samples_per_frame * 4);
+    alac->predicterror_buffer_a = (int32_t *)malloc(alac->setinfo_max_samples_per_frame * 4);
+    alac->predicterror_buffer_b = (int32_t *)malloc(alac->setinfo_max_samples_per_frame * 4);
 
-    alac->outputsamples_buffer_a = malloc(alac->setinfo_max_samples_per_frame * 4);
-    alac->outputsamples_buffer_b = malloc(alac->setinfo_max_samples_per_frame * 4);
+    alac->outputsamples_buffer_a = (int32_t *)malloc(alac->setinfo_max_samples_per_frame * 4);
+    alac->outputsamples_buffer_b = (int32_t *)malloc(alac->setinfo_max_samples_per_frame * 4);
 
-    alac->uncompressed_bytes_buffer_a = malloc(alac->setinfo_max_samples_per_frame * 4);
-    alac->uncompressed_bytes_buffer_b = malloc(alac->setinfo_max_samples_per_frame * 4);
+    alac->uncompressed_bytes_buffer_a = (int32_t *)malloc(alac->setinfo_max_samples_per_frame * 4);
+    alac->uncompressed_bytes_buffer_b = (int32_t *)malloc(alac->setinfo_max_samples_per_frame * 4);
 }
 
 void alac_set_info(alac_file *alac, char *inputbuffer)
@@ -1142,7 +1142,7 @@ void alac_decode_frame(alac_file *alac,
 
 alac_file *alac_create(int samplesize, int numchannels)
 {
-    alac_file *newfile = malloc(sizeof(alac_file));
+    alac_file *newfile = (alac_file *)malloc(sizeof(alac_file));
 
     memset(newfile, 0, sizeof(alac_file));
 

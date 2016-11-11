@@ -87,22 +87,20 @@ static int mdns_external_avahi_register(char *apname, int port) {
   char mdns_port[6];
   sprintf(mdns_port, "%d", config.port);
 
-  char *argvwithoutmetadata[] = {NULL, apname, config.regtype, mdns_port,
-                                 MDNS_RECORD_WITHOUT_METADATA, NULL};
+  const char *argvwithoutmetadata[] = {NULL, apname, config.regtype, mdns_port, MDNS_RECORD_WITHOUT_METADATA, NULL};
 #ifdef CONFIG_METADATA
-  char *argvwithmetadata[] = {NULL, apname, config.regtype, mdns_port, MDNS_RECORD_WITH_METADATA,
-                              NULL};
+  const char *argvwithmetadata[] = {NULL, apname, config.regtype, mdns_port, MDNS_RECORD_WITH_METADATA, NULL};
 #endif
   char **argv;
 
 #ifdef CONFIG_METADATA
   if (config.metadata_enabled)
-    argv = argvwithmetadata;
+    argv = const_cast<char**>(argvwithmetadata);
   else
 #endif
-    argv = argvwithoutmetadata;
+    argv = const_cast<char**>(argvwithoutmetadata); // remove constness because of execvp
 
-  argv[0] = "avahi-publish-service";
+  argv[0] = const_cast<char*>("avahi-publish-service");
   int pid = fork_execvp(argv[0], argv);
   if (pid >= 0) {
     mdns_pid = pid;
@@ -110,7 +108,7 @@ static int mdns_external_avahi_register(char *apname, int port) {
   } else
     warn("Calling %s failed !", argv[0]);
 
-  argv[0] = "mDNSPublish";
+  argv[0] = const_cast<char*>("mDNSPublish");
   pid = fork_execvp(argv[0], argv);
   if (pid >= 0) {
     mdns_pid = pid;
@@ -126,22 +124,18 @@ static int mdns_external_dns_sd_register(char *apname, int port) {
   char mdns_port[6];
   sprintf(mdns_port, "%d", config.port);
 
-  char *argvwithoutmetadata[] = {NULL, apname, config.regtype, mdns_port,
-                                 MDNS_RECORD_WITHOUT_METADATA, NULL};
+  const char *argvwithoutmetadata[] = {NULL, apname, config.regtype, mdns_port, MDNS_RECORD_WITHOUT_METADATA, NULL};
 
 #ifdef CONFIG_METADATA
-  char *argvwithmetadata[] = {NULL, apname, config.regtype, mdns_port, MDNS_RECORD_WITH_METADATA,
-                              NULL};
+  const char *argvwithmetadata[] = {NULL, apname, config.regtype, mdns_port, MDNS_RECORD_WITH_METADATA, NULL};
 #endif
 
   char **argv;
+  argv = const_cast<char**>(argvwithoutmetadata);
 #ifdef CONFIG_METADATA
-  if (config.metadata_enabled)
-    argv = argvwithmetadata;
-  else
+  if (config.metadata_enabled) argv = const_cast<char**>(argvwithmetadata);
 #endif
 
-    argv = argvwithoutmetadata;
 
   int pid = fork_execvp(argv[0], argv);
   if (pid >= 0) {

@@ -55,6 +55,9 @@
 #endif
 
 #ifdef HAVE_LIBPOLARSSL
+#undef OID_ISO_IDENTIFIED_ORG
+#undef OID_PKIX
+#undef OID_KP
 #include <polarssl/version.h>
 #include <polarssl/base64.h>
 #include <polarssl/x509.h>
@@ -75,6 +78,11 @@
 static volatile int requested_connection_state_to_output = 1;
 
 shairport_cfg config;
+int32_t buffer_occupancy; // allow it to be negative because seq_diff may be negative
+int64_t session_corrections;
+uint32_t play_segment_reference_frame;
+uint64_t play_segment_reference_frame_remote_time;
+
 
 int debuglev = 0;
 
@@ -82,7 +90,7 @@ int get_requested_connection_state_to_output() { return requested_connection_sta
 
 void set_requested_connection_state_to_output(int v) { requested_connection_state_to_output = v; }
 
-void die(char *format, ...) {
+void die(const char *format, ...) {
   char s[1024];
   s[0] = 0;
   va_list args;
@@ -94,7 +102,7 @@ void die(char *format, ...) {
   exit(1);
 }
 
-void warn(char *format, ...) {
+void warn(const char *format, ...) {
   char s[1024];
   s[0] = 0;
   va_list args;
@@ -104,7 +112,7 @@ void warn(char *format, ...) {
   daemon_log(LOG_WARNING, "%s", s);
 }
 
-void debug(int level, char *format, ...) {
+void debug(int level, const char *format, ...) {
   if (level > debuglev)
     return;
   char s[1024];
@@ -116,7 +124,7 @@ void debug(int level, char *format, ...) {
   daemon_log(LOG_DEBUG, "%s", s);
 }
 
-void inform(char *format, ...) {
+void inform(const char *format, ...) {
   char s[1024];
   s[0] = 0;
   va_list args;
@@ -150,7 +158,7 @@ uint8_t *base64_dec(char *input, int *outlen) {
   int inbufsize = ((strlen(input) + 3) / 4) * 4; // this is the size of the input buffer we will
                                                  // send to the decoder, but we need space for 3
                                                  // extra "="s and a NULL
-  char *inbuf = malloc(inbufsize + 4);
+  char *inbuf = (char*)malloc(inbufsize + 4);
   if (inbuf == 0)
     debug(1, "Can't malloc memory  for inbuf in base64_decode.");
   else {
@@ -163,7 +171,7 @@ uint8_t *base64_dec(char *input, int *outlen) {
       debug(1, "Error %d getting decode length, result is %d.", rc, dlen);
     else {
       // debug(1,"Decode size is %d.",dlen);
-      buf = malloc(dlen);
+      buf = (uint8_t *)malloc(dlen);
       if (buf == 0)
         debug(1, "Can't allocate memory in base64_dec.");
       else {
@@ -218,7 +226,7 @@ uint8_t *base64_dec(char *input, int *outlen) {
   BIO_flush(bmem);
 
   int bufsize = strlen(input) * 3 / 4 + 1;
-  uint8_t *buf = malloc(bufsize);
+  uint8_t *buf = (uint8_t *)malloc(bufsize);
   int nread;
 
   nread = BIO_read(b64, buf, bufsize);
@@ -265,7 +273,7 @@ uint8_t *rsa_apply(uint8_t *input, int inlen, int *outlen, int mode) {
     BIO_free(bmem);
   }
 
-  uint8_t *out = malloc(RSA_size(rsa));
+  uint8_t *out = (uint8_t *)malloc(RSA_size(rsa));
   switch (mode) {
   case RSA_MODE_AUTH:
     *outlen = RSA_private_encrypt(inlen, input, out, rsa, RSA_PKCS1_PADDING);
@@ -306,7 +314,7 @@ uint8_t *rsa_apply(uint8_t *input, int inlen, int *outlen, int mode) {
     trsa.padding = RSA_PKCS_V15;
     trsa.hash_id = POLARSSL_MD_NONE;
     debug(2, "rsa_apply encrypt");
-    out = malloc(trsa.len);
+    out = (uint8_t *)malloc(trsa.len);
     rc = rsa_pkcs1_encrypt(&trsa, ctr_drbg_random, &ctr_drbg, RSA_PRIVATE, inlen, input, out);
     if (rc != 0)
       debug(1, "rsa_pkcs1_encrypt error %d.", rc);
@@ -316,7 +324,7 @@ uint8_t *rsa_apply(uint8_t *input, int inlen, int *outlen, int mode) {
     debug(2, "rsa_apply decrypt");
     trsa.padding = RSA_PKCS_V21;
     trsa.hash_id = POLARSSL_MD_SHA1;
-    out = malloc(trsa.len);
+    out = (uint8_t *)malloc(trsa.len);
 #if POLARSSL_VERSION_NUMBER >= 0x01020900
     rc = rsa_pkcs1_decrypt(&trsa, ctr_drbg_random, &ctr_drbg, RSA_PRIVATE, (size_t *)outlen, input,
                            out, trsa.len);
@@ -513,8 +521,8 @@ uint64_t get_absolute_time_in_fp() {
   return time_now_fp;
 }
 
-ssize_t non_blocking_write(int fd, const void *buf, size_t count) {
-	void *ibuf = (void *)buf;
+ssize_t non_blocking_write(int fd, const char *buf, size_t count) {
+	const char* ibuf = buf;
 	size_t bytes_remaining = count;
 	int rc = 0;
   struct pollfd ufds[1];
@@ -560,7 +568,7 @@ char *str_replace ( const char *string, const char *substr, const char *replacem
   head = newstr;
   while ( (tok = strstr ( head, substr ))){
     oldstr = newstr;
-    newstr = malloc ( strlen ( oldstr ) - strlen ( substr ) + strlen ( replacement ) + 1 );
+    newstr = (char *)malloc ( strlen ( oldstr ) - strlen ( substr ) + strlen ( replacement ) + 1 );
     /*failed to alloc mem, free old string and return NULL */
     if ( newstr == NULL ){
       free (oldstr);

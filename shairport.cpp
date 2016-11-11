@@ -47,7 +47,29 @@
 #endif
 
 #ifdef HAVE_LIBSSL
-#include <openssl/md5.h>
+
+#if defined( __APPLE__ )
+
+    #include <CommonCrypto/CommonDigest.h>
+
+    #ifdef MD5_DIGEST_LENGTH
+
+        #undef MD5_DIGEST_LENGTH
+
+    #endif
+
+    #define MD5_Init            CC_MD5_Init
+    #define MD5_Update          CC_MD5_Update
+    #define MD5_Final           CC_MD5_Final
+    #define MD5_DIGEST_LENGTH   CC_MD5_DIGEST_LENGTH
+    #define MD5_CTX             CC_MD5_CTX
+
+#else
+
+    #include <openssl/md5.h>
+
+#endif
+
 #endif
 
 #include "common.h"
@@ -60,6 +82,10 @@
 #include <libdaemon/dlog.h>
 #include <libdaemon/dpid.h>
 #include <libdaemon/dexec.h>
+
+config_t config_file_stuff;
+long endianness;
+
 
 static int shutting_down = 0;
 static char *appName = NULL;
@@ -106,7 +132,7 @@ static void sig_connect_audio_output(int foo, siginfo_t *bar, void *baz) {
 }
 
 char* get_version_string() {
-  char* version_string = malloc(200);
+  char* version_string = (char*)malloc(200);
   if (version_string) {
     strcpy(version_string, PACKAGE_VERSION);
   #ifdef HAVE_LIBPOLARSSL
@@ -980,13 +1006,14 @@ int main(int argc, char **argv) {
   }
   
   /* print out version */
-  
-  char* version_dbs = get_version_string();
-  if (version_dbs) {
-    debug(1,"Version: \"%s\"",version_dbs);
-    free(version_dbs);
-  } else {
-    debug(1,"Can't print the version information!");
+  {
+    char* version_dbs = get_version_string();
+    if (version_dbs) {
+      debug(1,"Version: \"%s\"",version_dbs);
+      free(version_dbs);
+    } else {
+      debug(1,"Can't print the version information!");
+    }
   }
 
   /* Print out options */
@@ -1022,13 +1049,15 @@ int main(int argc, char **argv) {
   debug(1, "volume range in dB (zero means use the range specified by the mixer): %u.", config.volume_range_db);
   debug(1, "zeroconf regtype is \"%s\".", config.regtype);
   
-  char *realConfigPath = realpath(config.configfile,NULL);
-  if (realConfigPath) {
-    debug(1, "configuration file name \"%s\" resolves to \"%s\".", config.configfile,realConfigPath);
-    free(realConfigPath);
-  } else {
-     debug(1, "configuration file name \"%s\" can not be resolved.", config.configfile);
-  }   
+  {
+    char *realConfigPath = realpath(config.configfile,NULL);
+    if (realConfigPath) {
+      debug(1, "configuration file name \"%s\" resolves to \"%s\".", config.configfile,realConfigPath);
+      free(realConfigPath);
+    } else {
+       debug(1, "configuration file name \"%s\" can not be resolved.", config.configfile);
+    }
+  }
 #ifdef CONFIG_METADATA
   debug(1, "metdata enabled is %d.", config.metadata_enabled);
   debug(1, "metadata pipename is \"%s\".", config.metadata_pipename);

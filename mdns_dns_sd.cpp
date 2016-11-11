@@ -34,17 +34,17 @@
 static DNSServiceRef service;
 
 static int mdns_dns_sd_register(char *apname, int port) {
-  char *recordwithoutmetadata[] = {MDNS_RECORD_WITHOUT_METADATA, NULL};
+  const char *recordwithoutmetadata[] = {MDNS_RECORD_WITHOUT_METADATA, NULL};
 #ifdef CONFIG_METADATA
-  char *recordwithmetadata[] = {MDNS_RECORD_WITH_METADATA, NULL};
+  const char *recordwithmetadata[] = {MDNS_RECORD_WITH_METADATA, NULL};
 #endif
   char **record;
 #ifdef CONFIG_METADATA
   if (config.metadata_enabled)
-    record = recordwithmetadata;
+    record = const_cast<char**>(recordwithmetadata);
   else
 #endif
-    record = recordwithoutmetadata;
+    record = const_cast<char**>(recordwithoutmetadata);
 
   uint16_t length = 0;
   char **field;
@@ -55,7 +55,7 @@ static int mdns_dns_sd_register(char *apname, int port) {
     length += strlen(*field) + 1; // One byte for length each time
   }
 
-  char *buf = malloc(length * sizeof(char));
+  char *buf = (char *)malloc(length * sizeof(char));
   if (buf == NULL) {
     warn("dns_sd: buffer record allocation failed");
     return -1;

@@ -57,7 +57,7 @@ static mdns_backend *mdns_backends[] = {
     NULL};
 
 void mdns_register(void) {
-  char *mdns_service_name = alloca(strlen(config.service_name) + 14);
+  char *mdns_service_name = (char*)alloca(strlen(config.service_name) + 14);
   char *p = mdns_service_name;
   int i;
   for (i = 0; i < 6; i++) {

@@ -4,7 +4,7 @@
 AC_PREREQ([2.50])
 AC_INIT([shairport-sync], [2.8.6], [mikebrady@eircom.net])
 AM_INIT_AUTOMAKE
-AC_CONFIG_SRCDIR([shairport.c])
+AC_CONFIG_SRCDIR([shairport.cpp])
 AC_CONFIG_HEADERS([config.h])
 
 # Derived from the Avahi configure.ac file
@@ -20,6 +20,7 @@ with_os_type=`echo ${with_os_type} | tr '[[:upper:]]' '[[:lower:]]' `
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_CXX
 AC_PROG_INSTALL
 
 PKG_PROG_PKG_CONFIG([0.9.0])

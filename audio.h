@@ -12,7 +12,7 @@ typedef struct {
 
 typedef struct {
   void (*help)(void);
-  char *name;
+  const char *name;
 
   // start of program
   int (*init)(int argc, char **argv);

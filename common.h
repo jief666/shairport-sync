@@ -32,18 +32,18 @@
 #define SAFAMILY sa_family
 #endif
 
-enum endian_type {
+typedef enum endian_type {
   SS_LITTLE_ENDIAN = 0,
   SS_PDP_ENDIAN,
   SS_BIG_ENDIAN,
 } endian_type;
 
-enum stuffing_type {
+typedef enum stuffing_type {
   ST_basic = 0,
   ST_soxr,
 } type;
 
-enum playback_mode_type {
+typedef enum playback_mode_type {
   ST_stereo = 0,
   ST_mono,
 } playback_mode_type;
@@ -86,11 +86,11 @@ typedef struct {
   int32_t ForkedDaapdLatency; // supplied with --ForkedDaapdLatency option
   int daemonise;
   int statistics_requested,use_negotiated_latencies;
-  enum playback_mode_type playback_mode;
+  playback_mode_type playback_mode;
   char *cmd_start, *cmd_stop;
   int cmd_blocking;
   int tolerance; // allow this much drift before attempting to correct it
-  enum stuffing_type packet_stuffing;
+  stuffing_type packet_stuffing;
   char *pidfile;
   // char *logfile;
   // char *errfile;
@@ -108,16 +108,16 @@ int get_requested_connection_state_to_output();
 
 void set_requested_connection_state_to_output(int v);
 
-ssize_t non_blocking_write(int fd, const void *buf, size_t count); // used in a few places
+ssize_t non_blocking_write(int fd, const char *buf, size_t count); // used in a few places
 
 /* from http://coding.debuntu.org/c-implementing-str_replace-replace-all-occurrences-substring#comment-722 */
 char *str_replace ( const char *string, const char *substr, const char *replacement );
 
-int debuglev;
-void die(char *format, ...);
-void warn(char *format, ...);
-void inform(char *format, ...);
-void debug(int level, char *format, ...);
+extern int debuglev;
+void die(const char *format, ...);
+void warn(const char *format, ...);
+void inform(const char *format, ...);
+void debug(int level, const char *format, ...);
 
 uint8_t *base64_dec(char *input, int *outlen);
 char *base64_enc(uint8_t *input, int length);
@@ -136,16 +136,14 @@ uint64_t get_absolute_time_in_fp(void);
 
 // this is for reading an unsigned 32 bit number, such as an RTP timestamp
 
-long endianness;
 uint32_t uatoi(const char *nptr);
 
-shairport_cfg config;
-config_t config_file_stuff;
+extern shairport_cfg config;
 
-int32_t buffer_occupancy; // allow it to be negative because seq_diff may be negative
-int64_t session_corrections;
-uint32_t play_segment_reference_frame;
-uint64_t play_segment_reference_frame_remote_time;
+extern int32_t buffer_occupancy; // allow it to be negative because seq_diff may be negative
+extern int64_t session_corrections;
+extern uint32_t play_segment_reference_frame;
+extern uint64_t play_segment_reference_frame_remote_time;
 
 void command_start(void);
 void command_stop(void);

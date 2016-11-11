@@ -97,7 +97,7 @@ void *rtp_audio_receiver(void *arg) {
   debug(2, "Audio receiver -- Server RTP thread starting.");
 
   // we inherit the signal mask (SIGUSR1)
-  struct inter_threads_record *itr = arg;
+  struct inter_threads_record *itr = (struct inter_threads_record *)arg;
 
   int32_t last_seqno = -1;
   uint8_t packet[2048], *pktp;
@@ -192,7 +192,7 @@ void *rtp_control_receiver(void *arg) {
   // we inherit the signal mask (SIGUSR1)
 
   debug(2, "Control receiver -- Server RTP thread starting.");
-  struct inter_threads_record *itr = arg;
+  struct inter_threads_record *itr = (struct inter_threads_record *)arg;
 
   reference_timestamp = 0; // nothing valid received yet
   uint8_t packet[2048], *pktp;
@@ -293,7 +293,7 @@ void *rtp_control_receiver(void *arg) {
 
 void *rtp_timing_sender(void *arg) {
   debug(2, "Timing sender thread starting.");
-	int *stop = arg; // the parameter points to this request to stop thing
+	int *stop = (int*)arg; // the parameter points to this request to stop thing
   struct timing_request {
     char leader;
     char type;
@@ -351,7 +351,7 @@ void *rtp_timing_receiver(void *arg) {
   debug(2, "Timing receiver -- Server RTP thread starting.");
   // we inherit the signal mask (SIGUSR1)
 
-	struct inter_threads_record *itr = arg;
+	struct inter_threads_record *itr = (struct inter_threads_record *)arg;
 
   uint8_t packet[2048], *pktp;
   ssize_t nread;

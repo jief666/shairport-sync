@@ -10,7 +10,7 @@ void mdns_register(void);
 void mdns_ls_backends(void);
 
 typedef struct {
-  char *name;
+  const char *name;
   int (*mdns_register)(char *apname, int port);
   void (*mdns_unregister)(void);
 } mdns_backend;

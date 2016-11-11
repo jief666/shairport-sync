@@ -304,7 +304,7 @@ static void free_decoder(void) { alac_free(decoder_info); }
 static void init_buffer(void) {
   int i;
   for (i = 0; i < BUFFER_FRAMES; i++)
-    audio_buffer[i].data = malloc(bytes_per_audio_frame*(frame_size+max_frame_size_change));
+    audio_buffer[i].data = (signed short *)malloc(bytes_per_audio_frame*(frame_size+max_frame_size_change));
   ab_resync();
 }
 
@@ -702,7 +702,7 @@ static abuf_t *buffer_get_frame(void) {
                 //  debug(2,"Zero length silence buffer needed with gross_frame_gap of %lld and dac_delay of %lld.",gross_frame_gap,dac_delay);
                 // the fs (number of frames of silence to play) can be zero in the DAC doesn't start ouotputting frames for a while -- it could get loaded up but not start responding for many milliseconds.
                 if (fs!=0) {
-                  silence = malloc(bytes_per_audio_frame*fs);
+                  silence = (signed short *)malloc(bytes_per_audio_frame*fs);
                   if (silence==NULL)
                     debug(1,"Failed to allocate %d byte silence buffer.",fs);
                   else {
@@ -1034,10 +1034,10 @@ static void *player_thread_func(void *arg) {
   initstate(time(NULL), rnstate, 256);
 
   signed short *inbuf, *outbuf, *silence;
-  outbuf = malloc(bytes_per_audio_frame*(frame_size+max_frame_size_change));
+  outbuf = (signed short *)malloc(bytes_per_audio_frame*(frame_size+max_frame_size_change));
   if (outbuf==NULL)
     debug(1,"Failed to allocate memory for an output buffer.");
-  silence = malloc(bytes_per_audio_frame*frame_size);
+  silence = (signed short *)malloc(bytes_per_audio_frame*frame_size);
   if (silence==NULL)
     debug(1,"Failed to allocate memory for a silence buffer.");
   memset(silence, 0, bytes_per_audio_frame*frame_size);
@@ -1651,7 +1651,7 @@ void player_volume(double airplay_volume) {
   pthread_mutex_unlock(&vol_mutex);
 
 #ifdef CONFIG_METADATA
-  char *dv = malloc(128); // will be freed in the metadata thread
+  char *dv = (char*)malloc(128); // will be freed in the metadata thread
   if (dv) {
     memset(dv, 0, 128);
     snprintf(dv, 127, "%.2f,%.2f,%.2f,%.2f", airplay_volume,

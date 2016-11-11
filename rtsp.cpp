@@ -47,7 +47,28 @@
 #include "config.h"
 
 #ifdef HAVE_LIBSSL
-#include <openssl/md5.h>
+
+#if defined( __APPLE__ )
+
+    #include <CommonCrypto/CommonDigest.h>
+
+    #ifdef MD5_DIGEST_LENGTH
+
+        #undef MD5_DIGEST_LENGTH
+
+    #endif
+
+    #define MD5_Init            CC_MD5_Init
+    #define MD5_Update          CC_MD5_Update
+    #define MD5_Final           CC_MD5_Final
+    #define MD5_DIGEST_LENGTH   CC_MD5_DIGEST_LENGTH
+    #define MD5_CTX             CC_MD5_CTX
+
+#else
+
+    #include <openssl/md5.h>
+
+#endif
 #endif
 
 #ifdef HAVE_LIBPOLARSSL
@@ -115,7 +136,7 @@ typedef struct {
   uint32_t capacity; // maximum number of items
   uint32_t toq;      // first item to take
   uint32_t eoq;      // free space at end of queue
-  void *items;       // a pointer to where the items are actually stored
+  char *items;       // a pointer to where the items are actually stored
 } pc_queue;          // producer-consumer queue
 #endif
 
@@ -284,7 +305,7 @@ void rtsp_request_shutdown_stream(void) {
 // keep track of the threads we have spawned so we can join() them
 static int nconns = 0;
 static void track_thread(rtsp_conn_info *conn) {
-  conns = realloc(conns, sizeof(rtsp_conn_info *) * (nconns + 1));
+  conns = (rtsp_conn_info **)realloc(conns, sizeof(rtsp_conn_info *) * (nconns + 1));
   conns[nconns] = conn;
   nconns++;
 }
@@ -361,14 +382,14 @@ static void msg_retain(rtsp_message *msg) {
 }
 
 static rtsp_message *msg_init(void) {
-  rtsp_message *msg = malloc(sizeof(rtsp_message));
+  rtsp_message *msg = (rtsp_message *)malloc(sizeof(rtsp_message));
   memset(msg, 0, sizeof(rtsp_message));
   msg->referenceCount =
       1; // from now on, any access to this must be protected with the lock
   return msg;
 }
 
-static int msg_add_header(rtsp_message *msg, char *name, char *value) {
+static int msg_add_header(rtsp_message *msg, const char *name, const char *value) {
   if (msg->nheaders >= sizeof(msg->name) / sizeof(char *)) {
     warn("too many headers?!");
     return 1;
@@ -381,7 +402,7 @@ static int msg_add_header(rtsp_message *msg, char *name, char *value) {
   return 0;
 }
 
-static char *msg_get_header(rtsp_message *msg, char *name) {
+static char *msg_get_header(rtsp_message *msg, const char *name) {
   int i;
   for (i = 0; i < msg->nheaders; i++)
     if (!strcasecmp(msg->name[i], name))
@@ -483,7 +504,7 @@ static enum rtsp_read_request_response
 rtsp_read_request(rtsp_conn_info *conn, rtsp_message **the_packet) {
   enum rtsp_read_request_response reply = rtsp_read_request_response_ok;
   ssize_t buflen = 512;
-  char *buf = malloc(buflen + 1);
+  char *buf = (char *)malloc(buflen + 1);
 
   rtsp_message *msg = NULL;
 
@@ -533,7 +554,7 @@ rtsp_read_request(rtsp_conn_info *conn, rtsp_message **the_packet) {
   }
 
   if (msg_size > buflen) {
-    buf = realloc(buf, msg_size);
+    buf = (char *)realloc(buf, msg_size);
     if (!buf) {
       warn("too much content");
       reply = rtsp_read_request_response_error;
@@ -542,46 +563,45 @@ rtsp_read_request(rtsp_conn_info *conn, rtsp_message **the_packet) {
     buflen = msg_size;
   }
 
-  uint64_t threshold_time = get_absolute_time_in_fp() +
-                            ((uint64_t)5 << 32); // i.e. five seconds from now
-  int warning_message_sent = 0;
+  {
+    uint64_t threshold_time = get_absolute_time_in_fp() + ((uint64_t)5 << 32); // i.e. five seconds from now
+    int warning_message_sent = 0;
 
-  const size_t max_read_chunk = 50000;
-  while (inbuf < msg_size) {
+    const size_t max_read_chunk = 50000;
+    while (inbuf < msg_size) {
 
-    // we are going to read the stream in chunks and time how long it takes to
-    // do so.
-    // If it's taking too long, (and we find out about it), we will send an
-    // error message as
-    // metadata
+      // we are going to read the stream in chunks and time how long it takes to
+      // do so.
+      // If it's taking too long, (and we find out about it), we will send an
+      // error message as
+      // metadata
 
-    if (warning_message_sent == 0) {
-      uint64_t time_now = get_absolute_time_in_fp();
-      if (time_now > threshold_time) { // it's taking too long
-        debug(1, "Error receiving metadata from source -- transmission seems "
-                 "to be stalled.");
+      if (warning_message_sent == 0) {
+        uint64_t time_now = get_absolute_time_in_fp();
+        if (time_now > threshold_time) { // it's taking too long
+          debug(1, "Error receiving metadata from source -- transmission seems to be stalled.");
 #ifdef CONFIG_METADATA
-        send_ssnc_metadata('stal', NULL, 0, 1);
+          send_ssnc_metadata('stal', NULL, 0, 1);
 #endif
-        warning_message_sent = 1;
+          warning_message_sent = 1;
+        }
       }
+      ssize_t read_chunk = msg_size - inbuf;
+      if (read_chunk > max_read_chunk) read_chunk = max_read_chunk;
+      nread = read(conn->fd, buf + inbuf, read_chunk);
+      if (!nread) {
+        reply = rtsp_read_request_response_error;
+        goto shutdown;
+      }
+      if (nread == EINTR)
+        continue;
+      if (nread < 0) {
+        perror("read failure");
+        reply = rtsp_read_request_response_error;
+        goto shutdown;
+      }
+      inbuf += nread;
     }
-    ssize_t read_chunk = msg_size - inbuf;
-    if (read_chunk > max_read_chunk)
-      read_chunk = max_read_chunk;
-    nread = read(conn->fd, buf + inbuf, read_chunk);
-    if (!nread) {
-      reply = rtsp_read_request_response_error;
-      goto shutdown;
-    }
-    if (nread == EINTR)
-      continue;
-    if (nread < 0) {
-      perror("read failure");
-      reply = rtsp_read_request_response_error;
-      goto shutdown;
-    }
-    inbuf += nread;
   }
 
   msg->contentlength = inbuf;
@@ -832,19 +852,21 @@ static void handle_setup(rtsp_conn_info *conn, rtsp_message *req,
 
   player_play(&conn->stream, &conn->player_thread); // the thread better be 0
 
-  char *resphdr = alloca(200);
-  *resphdr = 0;
-  sprintf(resphdr, "RTP/AVP/"
-                   "UDP;unicast;interleaved=0-1;mode=record;control_port=%d;"
-                   "timing_port=%d;server_"
-                   "port=%d",
-          lcport, ltport, lsport);
+  {
+    char *resphdr = (char *)alloca(200);
+    *resphdr = 0;
+    sprintf(resphdr, "RTP/AVP/"
+                     "UDP;unicast;interleaved=0-1;mode=record;control_port=%d;"
+                     "timing_port=%d;server_"
+                     "port=%d",
+            lcport, ltport, lsport);
 
-  msg_add_header(resp, "Transport", resphdr);
+    msg_add_header(resp, "Transport", resphdr);
 
-  msg_add_header(resp, "Session", "1");
+    msg_add_header(resp, "Session", "1");
 
-  resp->respcode = 200;
+    resp->respcode = 200;
+  }
   return;
 
 error:
@@ -876,7 +898,7 @@ static void handle_set_parameter_parameter(rtsp_conn_info *conn,
       }
 #ifdef CONFIG_METADATA
       else {                    // if ignore volume is on...
-        char *dv = malloc(128); // will be freed in the metadata thread
+        char *dv = (char *)malloc(128); // will be freed in the metadata thread
         if (dv) {
           memset(dv, 0, 128);
           snprintf(dv, 127, "%.2f,%.2f,%.2f,%.2f", volume, 0.0, 0.0, 0.0);
@@ -1053,7 +1075,7 @@ void metadata_create(void) {
       metadata_sockaddr.sin_family = AF_INET;
       metadata_sockaddr.sin_addr.s_addr = inet_addr(config.metadata_sockaddr);
       metadata_sockaddr.sin_port = htons(config.metadata_sockport);
-      if (!(metadata_sockmsg = malloc(config.metadata_sockmsglength))) {
+      if (!(metadata_sockmsg = (char *)malloc(config.metadata_sockmsglength))) {
         die("Could not malloc metadata socket buffer");
       }
       memset(metadata_sockmsg, 0, config.metadata_sockmsglength);
@@ -1062,7 +1084,7 @@ void metadata_create(void) {
 
   size_t pl = strlen(config.metadata_pipename) + 1;
 
-  char *path = malloc(pl + 1);
+  char *path = (char *)malloc(pl + 1);
   snprintf(path, pl + 1, "%s", config.metadata_pipename);
 
   if (mkfifo(path, 0644) && errno != EEXIST)
@@ -1077,7 +1099,7 @@ void metadata_open(void) {
 
   size_t pl = strlen(config.metadata_pipename) + 1;
 
-  char *path = malloc(pl + 1);
+  char *path = (char *)malloc(pl + 1);
   snprintf(path, pl + 1, "%s", config.metadata_pipename);
 
   fd = open(path, O_WRONLY | O_NONBLOCK);
@@ -1093,8 +1115,7 @@ static void metadata_close(void) {
   fd = -1;
 }
 
-void metadata_process(uint32_t type, uint32_t code, char *data,
-                      uint32_t length) {
+void metadata_process(uint32_t type, uint32_t code, char *data, uint32_t length) {
   // debug(2, "Process metadata with type %x, code %x and length %u.", type, code, length);
   int ret;
 
@@ -1513,7 +1534,7 @@ out:
 }
 
 static struct method_handler {
-  char *method;
+  const char *method;
   void (*handler)(rtsp_conn_info *conn, rtsp_message *req, rtsp_message *resp);
 } method_handlers[] = {{"OPTIONS", handle_options},
                        {"ANNOUNCE", handle_announce},
@@ -1595,21 +1616,21 @@ static char *make_nonce(void) {
 
 static int rtsp_auth(char **nonce, rtsp_message *req, rtsp_message *resp) {
 
-  if (!config.password)
-    return 0;
+  if (!config.password) return 0;
   if (!*nonce) {
     *nonce = make_nonce();
     goto authenticate;
   }
-
+  {
   char *hdr = msg_get_header(req, "Authorization");
   if (!hdr || strncmp(hdr, "Digest ", 7))
     goto authenticate;
 
-  char *realm = strstr(hdr, "realm=\"");
-  char *username = strstr(hdr, "username=\"");
-  char *response = strstr(hdr, "response=\"");
-  char *uri = strstr(hdr, "uri=\"");
+  {
+    char *realm = strstr(hdr, "realm=\"");
+    char *username = strstr(hdr, "username=\"");
+    char *response = strstr(hdr, "response=\"");
+    char *uri = strstr(hdr, "uri=\"");
 
   if (!realm || !username || !response || !uri)
     goto authenticate;
@@ -1703,11 +1724,12 @@ static int rtsp_auth(char **nonce, rtsp_message *req, rtsp_message *resp) {
   if (!strcmp(response, (const char *)buf))
     return 0;
   warn("Password authorization failed.");
-
+  }
+  }
 authenticate:
   resp->respcode = 401;
   int hdrlen = strlen(*nonce) + 40;
-  char *authhdr = malloc(hdrlen);
+  char *authhdr = (char*)malloc(hdrlen);
   snprintf(authhdr, hdrlen, "Digest realm=\"raop\", nonce=\"%s\"", *nonce);
   msg_add_header(resp, "WWW-Authenticate", authhdr);
   free(authhdr);
@@ -1721,7 +1743,7 @@ static void *rtsp_conversation_thread_func(void *pconn) {
   sigaddset(&set, SIGUSR1);
   pthread_sigmask(SIG_UNBLOCK, &set, NULL);
 
-  rtsp_conn_info *conn = pconn;
+  rtsp_conn_info *conn = (rtsp_conn_info *)pconn;
 
   rtsp_message *req, *resp;
   char *hdr, *auth_nonce = NULL;
@@ -1865,20 +1887,21 @@ void rtsp_listen_loop(void) {
     // report its availability. do not complain.
 
     if (ret) {
-    	char *family;
+    	const char *family;
 #ifdef AF_INET6
-			if (p->ai_family == AF_INET6) {
+		if (p->ai_family == AF_INET6) {
 			family = "IPv6";
-			} else
+		} else {
 #endif
 			family = "IPv4";
+		}
       debug(1, "Unable to listen on %s port %d. The error is: \"%s\".", family, config.port,strerror(errno));
       continue;
     }
 
     listen(fd, 5);
     nsock++;
-    sockfd = realloc(sockfd, nsock * sizeof(int));
+    sockfd = (int*)realloc(sockfd, nsock * sizeof(int));
     sockfd[nsock - 1] = fd;
   }
 
@@ -1928,7 +1951,7 @@ void rtsp_listen_loop(void) {
     if (acceptfd < 0) // timeout
       continue;
 
-    rtsp_conn_info *conn = malloc(sizeof(rtsp_conn_info));
+    rtsp_conn_info *conn = (rtsp_conn_info *)malloc(sizeof(rtsp_conn_info));
     memset(conn, 0, sizeof(rtsp_conn_info));
     socklen_t slen = sizeof(conn->remote);
 
@@ -1985,8 +2008,7 @@ void rtsp_listen_loop(void) {
 
       usleep(500000);
       pthread_t rtsp_conversation_thread;
-      ret = pthread_create(&rtsp_conversation_thread, NULL,
-                           rtsp_conversation_thread_func, conn);
+      ret = pthread_create(&rtsp_conversation_thread, NULL, rtsp_conversation_thread_func, conn);
       if (ret)
         die("Failed to create RTSP receiver thread!");
 

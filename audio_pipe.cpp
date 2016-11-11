@@ -55,7 +55,7 @@ static void play(short buf[], int samples) {
   }
   // if it's got a reader, write to it.
   if (fd != -1) {
-    int ignore = non_blocking_write(fd, buf, samples * 4);
+    int ignore = non_blocking_write(fd, (char*)buf, samples * 4);
   }
 }
 
