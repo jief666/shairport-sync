@@ -76,7 +76,7 @@
 #include "rtsp.h"
 #include "rtp.h"
 #include "mdns.h"
-
+#include "class_audio_backend.h"
 #include <libdaemon/dfork.h>
 #include <libdaemon/dsignal.h>
 #include <libdaemon/dlog.h>
@@ -98,8 +98,10 @@ void shairport_shutdown() {
   shutting_down = 1;
   mdns_unregister();
   rtsp_request_shutdown_stream();
-  if (config.output)
-    config.output->deinit();
+  if (config.output) {
+    delete config.output;
+    config.output = NULL;
+  }
 }
 
 static void sig_ignore(int foo, siginfo_t *bar, void *baz) {}
@@ -259,7 +261,7 @@ void usage(char *progname) {
   printf("\n");
   mdns_ls_backends();
   printf("\n");
-  audio_ls_outputs();
+  class_audio_backend::ls_outputs();
 }
 
 int parse_options(int argc, char **argv) {
@@ -726,7 +728,7 @@ void exit_function() {
 int main(int argc, char **argv) {
 
   daemon_set_verbosity(LOG_DEBUG);
-  memset(&config, 0, sizeof(config)); // also clears all strings, BTW
+  memset(&config, 0, sizeof(config)); // also clears all strings, BTW  // cannot bzero a struct containing objects TODO
   atexit(exit_function);
 
   // this is a bit weird, but apparently necessary
@@ -942,12 +944,16 @@ int main(int argc, char **argv) {
   // make sure the program can create files that group and world can read
   umask(S_IWGRP | S_IWOTH);
 
-  config.output = audio_get_output(config.output_name);
+  //config.output = audio_get_output(config.output_name);
+  if ( config.output_name == NULL ) {
+    config.output_name = class_audio_backend::get_defualt().c;
+  }
+  config.output = new_instance_of_class_audio_backend(config.output_name, argc - audio_arg, argv + audio_arg);
   if (!config.output) {
-    audio_ls_outputs();
+    class_audio_backend::ls_outputs();
     die("Invalid audio output specified!");
   }
-  config.output->init(argc - audio_arg, argv + audio_arg);
+  //config.output->init(argc - audio_arg, argv + audio_arg);
 
   // daemon_log(LOG_NOTICE, "startup");
   

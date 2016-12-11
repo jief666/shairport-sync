@@ -518,8 +518,7 @@ static abuf_t *buffer_get_frame(void) {
 
     pthread_mutex_lock(&flush_mutex);
     if (flush_requested == 1) {
-      if (config.output->flush)
-        config.output->flush();
+      config.output->flush();
       ab_resync();
       first_packet_timestamp = 0;
       first_packet_time_to_play = 0;
@@ -651,15 +650,14 @@ static abuf_t *buffer_get_frame(void) {
               // flush.",(((tn-first_packet_time_to_play)*44100)>>32)+dac_delay,tn,first_packet_time_to_play,dac_delay,seq_diff(ab_read,
               // ab_write));
 
-              if (config.output->flush)
-                config.output->flush();
+              config.output->flush();
               ab_resync();
               first_packet_timestamp = 0;
               first_packet_time_to_play = 0;
               time_since_play_started = 0;
             } else {
               // first_packet_time_to_play is definitely later than local_time_now
-              if ((config.output->delay) && (have_sent_prefiller_silence != 0)) {
+              if (have_sent_prefiller_silence != 0) {
           			int resp = config.output->delay(&dac_delay);
                 if (resp != 0) {
                   debug(1, "Error %d getting dac_delay in buffer_get_frame.",resp);
@@ -676,8 +674,7 @@ static abuf_t *buffer_get_frame(void) {
                 // %llx, fpttp of %llx and dac_delay of %d and %d packets;
                 // flush.",-exact_frame_gap,tn,first_packet_time_to_play,dac_delay,seq_diff(ab_read,
                 // ab_write));
-                if (config.output->flush)
-                  config.output->flush();
+                config.output->flush();
                 ab_resync();
                 first_packet_timestamp = 0;
                 first_packet_time_to_play = 0;
@@ -1049,7 +1046,7 @@ static void *player_thread_func(void *arg) {
   int sync_error_out_of_bounds = 0; // number of times in a row that there's been a serious sync error
 
   if (config.statistics_requested) {
-    if ((config.output->delay)) {
+    if ( config.output->implementsDelay() ) {
       if (config.no_sync==0) {
         inform("sync error in frames, "
                "net correction in ppm, "
@@ -1175,7 +1172,7 @@ static void *player_thread_func(void *arg) {
 					int resp = -1; // use this as a flag -- if negative, we can't rely on a real known delay
           current_delay = -1; // use this as a failure flag
  
-					if (config.output->delay) {
+					if ( config.output->implementsDelay() ) {
 						long l_delay; 
 						resp = config.output->delay(&l_delay);
 						current_delay = l_delay;
@@ -1411,7 +1408,7 @@ static void *player_thread_func(void *arg) {
           // if ((play_number/print_interval)%20==0)
           if (config.statistics_requested) {
             if (at_least_one_frame_seen) {
-            	if ((config.output->delay)) {
+            	if ((config.output->implementsDelay())) {
                 if (config.no_sync==0) {
                   inform("%*.1f,"  /* Sync error inf frames */
                          "%*.1f,"  /* net correction in ppm */
@@ -1494,8 +1491,7 @@ static void *player_thread_func(void *arg) {
      inform( "Playback Stopped. Total playing time %02d:%02d:%02d\n", elapsedHours, elapsedMin, elapsedSec );
   }
 
-  if (config.output->stop)
-  	config.output->stop();
+  config.output->stop();
   usleep(100000); // allow this time to (?) allow the alsa subsystem to finish cleaning up after itself. 50 ms seems too short
   free(outbuf);
   free(silence);
@@ -1555,7 +1551,7 @@ void player_volume(double airplay_volume) {
   else
     desired_range_db = 0;
   
-  if (config.output->parameters) {
+  if ( config.output->implementsParameters() ) {
     // have a hardware mixer
     config.output->parameters(&audio_information);
     hw_max_db = audio_information.maximum_volume_dB;
@@ -1613,12 +1609,10 @@ void player_volume(double airplay_volume) {
     // needed even with hardware mute, as when sound is unmuted it might otherwise be very loud.
   	hardware_attenuation = hw_min_db;
   	software_attenuation = sw_min_db;
-  	if (config.output->mute)
-  		config.output->mute(1); // use real mute if it's there
+	config.output->mute(1); // use real mute if it's there
     
   } else {
-  	if (config.output->mute)
-  		config.output->mute(0); // unmute mute if it's there  
+	config.output->mute(0); // unmute mute if it's there
     scaled_attenuation = vol2attn(airplay_volume, max_db, min_db);
     if (hw_range_db) {
       // if there is a hardware mixer
@@ -1639,7 +1633,7 @@ void player_volume(double airplay_volume) {
     }
   }
   
-  if ((config.output->volume) && (hw_range_db)) {
+  if ( hw_range_db ) {
 	  config.output->volume(hardware_attenuation); // otherwise set the output to the lowest value
 	  //debug(1,"Hardware attenuation set to %f for airplay volume of %f.",hardware_attenuation,airplay_volume);
   }

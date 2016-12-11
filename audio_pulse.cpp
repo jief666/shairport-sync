@@ -28,6 +28,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
+#include "config.h"
+#ifdef CONFIG_PULSE
+
+
 #include <stdio.h>
 #include <unistd.h>
 #include <memory.h>
@@ -143,3 +148,5 @@ audio_output audio_pulse = {.name = "pulse",
                             .volume = NULL,
                             .parameters = NULL,
                             .mute = NULL};
+
+#endif

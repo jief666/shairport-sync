@@ -25,6 +25,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "config.h"
+#ifdef CONFIG_AVAHI
+
+
+
 #include <stdlib.h>
 
 #include <string.h>
@@ -315,3 +320,5 @@ static void avahi_unregister(void) {
 
 mdns_backend mdns_avahi = {
     .name = "avahi", .mdns_register = avahi_register, .mdns_unregister = avahi_unregister};
+
+#endif

@@ -26,3 +26,5 @@ scripts/shairport-sync
 # Some eclipse project files
 .cproject
 .project
+/.settings/
+/Debug/

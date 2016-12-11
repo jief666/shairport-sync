@@ -34,35 +34,32 @@
 #include "common.h"
 #include "audio.h"
 
-int Fs;
-long long starttime, samples_played;
+#include "class_audio_backend_dummy.h"
 
-static int init(int argc, char **argv) { return 0; }
+// Registering
+class_audio_backend *class_audio_dummy_new_instance(int argc, char **argv) { return new class_audio_backend_dummy(argc, argv); }
+int class_audio_dummy_global = register_audio_backend(new class_audio_backend_entry_points("class_audio_dummy", class_audio_dummy_new_instance, NULL));
 
-static void deinit(void) {}
 
-static void start(int sample_rate) {
-  Fs = sample_rate;
-  starttime = 0;
-  samples_played = 0;
+
+class_audio_backend_dummy::class_audio_backend_dummy(int argc, char **argv)
+{
+}
+
+class_audio_backend_dummy::~class_audio_backend_dummy()
+{
+}
+
+void class_audio_backend_dummy::start(int sample_rate) {
   debug(1, "dummy audio output started at Fs=%d Hz\n", sample_rate);
 }
 
-static void play(short buf[], int samples) {}
+void class_audio_backend_dummy::play(short buf[], int samples)
+{
+}
 
-static void stop(void) { debug(1, "dummy audio stopped\n"); }
+void class_audio_backend_dummy::stop(void)
+{
+	debug(1, "dummy audio stopped\n");
+}
 
-static void help(void) { printf("    There are no options for dummy audio.\n"); }
-
-audio_output audio_dummy = {.name = "dummy",
-                            .help = &help,
-                            .init = &init,
-                            .deinit = &deinit,
-                            .start = &start,
-                            .stop = &stop,
-                            .flush = NULL,
-                            .delay = NULL,
-                            .play = &play,
-                            .volume = NULL,
-                            .parameters = NULL,
-                            .mute = NULL};

@@ -127,15 +127,15 @@ static void help(void) {
   printf("    pipe takes 1 argument: the name of the FIFO to write to.\n");
 }
 
-audio_output audio_pipe = {.name = "pipe",
-                           .help = &help,
-                           .init = &init,
-                           .deinit = &deinit,
-                           .start = &start,
-                           .stop = &stop,
-                           .flush = NULL,
-                           .delay = NULL,
-                           .play = &play,
-                           .volume = NULL,
-                           .parameters = NULL,
-                           .mute = NULL};
+//audio_output audio_pipe = {.name = "pipe",
+//                           .help = &help,
+//                           .init = &init,
+//                           .deinit = &deinit,
+//                           .start = &start,
+//                           .stop = &stop,
+//                           .flush = NULL,
+//                           .delay = NULL,
+//                           .play = &play,
+//                           .volume = NULL,
+//                           .parameters = NULL,
+//                           .mute = NULL};

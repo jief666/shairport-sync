@@ -87,15 +87,15 @@ static void help(void) {
   printf("    stdout takes no arguments\n");
 }
 
-audio_output audio_stdout = {.name = "stdout",
-                           .help = &help,
-                           .init = &init,
-                           .deinit = &deinit,
-                           .start = &start,
-                           .stop = &stop,
-                           .flush = NULL,
-                           .delay = NULL,
-                           .play = &play,
-                           .volume = NULL,
-                           .parameters = NULL,
-                           .mute = NULL};
+//audio_output audio_stdout = {.name = "stdout",
+//                           .help = &help,
+//                           .init = &init,
+//                           .deinit = &deinit,
+//                           .start = &start,
+//                           .stop = &stop,
+//                           .flush = NULL,
+//                           .delay = NULL,
+//                           .play = &play,
+//                           .volume = NULL,
+//                           .parameters = NULL,
+//                           .mute = NULL};

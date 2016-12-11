@@ -7,6 +7,7 @@
 
 #include "config.h"
 #include "audio.h"
+#include "class_audio_backend.h"
 #include "mdns.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -74,8 +75,8 @@ typedef struct {
                // of seconds . Zero means never exit.
   int dont_check_timeout; // this is used to maintain backward compatability with the old -t option
                           // behaviour; only set by -t 0, cleared by everything else
-  char *output_name;
-  audio_output *output;
+  const char* output_name;
+  class_audio_backend *output;
   char *mdns_name;
   mdns_backend *mdns;
   int buffer_start_fill;

@@ -24,81 +24,81 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include "audio.h"
-#include "config.h"
+//#include <stdio.h>
+//#include <string.h>
+//#include "audio.h"
+//#include "config.h"
 
-#ifdef CONFIG_SNDIO
-extern audio_output audio_sndio;
-#endif
-#ifdef CONFIG_AO
-extern audio_output audio_ao;
-#endif
-#ifdef CONFIG_PULSE
-extern audio_output audio_pulse;
-#endif
-#ifdef CONFIG_ALSA
-extern audio_output audio_alsa;
-#endif
-#ifdef CONFIG_DUMMY
-extern audio_output audio_dummy;
-#endif
-#ifdef CONFIG_PIPE
-extern audio_output audio_pipe;
-#endif
-#ifdef CONFIG_STDOUT
-extern audio_output audio_stdout;
-#endif
+//#ifdef CONFIG_SNDIO
+//extern audio_output audio_sndio;
+//#endif
+//#ifdef CONFIG_AO
+//extern audio_output audio_ao;
+//#endif
+//#ifdef CONFIG_PULSE
+//extern audio_output audio_pulse;
+//#endif
+//#ifdef CONFIG_ALSA
+//extern audio_output audio_alsa;
+//#endif
+//#ifdef CONFIG_DUMMY
+//extern audio_output audio_dummy;
+//#endif
+//#ifdef CONFIG_PIPE
+//extern audio_output audio_pipe;
+//#endif
+//#ifdef CONFIG_STDOUT
+//extern audio_output audio_stdout;
+//#endif
+//
+//static audio_output *outputs[] = {
+//#ifdef CONFIG_SNDIO
+//    &audio_sndio,
+//#endif
+//#ifdef CONFIG_ALSA
+//    &audio_alsa,
+//#endif
+//#ifdef CONFIG_PULSE
+//    &audio_pulse,
+//#endif
+//#ifdef CONFIG_AO
+//    &audio_ao,
+//#endif
+//#ifdef CONFIG_DUMMY
+//    &audio_dummy,
+//#endif
+//#ifdef CONFIG_PIPE
+//    &audio_pipe,
+//#endif
+//#ifdef CONFIG_STDOUT
+//    &audio_stdout,
+//#endif
+//    NULL};
 
-static audio_output *outputs[] = {
-#ifdef CONFIG_SNDIO
-    &audio_sndio,
-#endif
-#ifdef CONFIG_ALSA
-    &audio_alsa,
-#endif
-#ifdef CONFIG_PULSE
-    &audio_pulse,
-#endif
-#ifdef CONFIG_AO
-    &audio_ao,
-#endif
-#ifdef CONFIG_DUMMY
-    &audio_dummy,
-#endif
-#ifdef CONFIG_PIPE 
-    &audio_pipe,
-#endif
-#ifdef CONFIG_STDOUT
-    &audio_stdout,
-#endif
-    NULL};
+//audio_output *audio_get_output(char *name) {
+//  audio_output **out;
+//
+//  // default to the first
+//  if (!name)
+//    return outputs[0];
+//
+//  for (out = outputs; *out; out++)
+//    if (!strcasecmp(name, (*out)->name))
+//      return *out;
+//
+//  return NULL;
+//}
 
-audio_output *audio_get_output(char *name) {
-  audio_output **out;
-
-  // default to the first
-  if (!name)
-    return outputs[0];
-
-  for (out = outputs; *out; out++)
-    if (!strcasecmp(name, (*out)->name))
-      return *out;
-
-  return NULL;
-}
-
-void audio_ls_outputs(void) {
-  audio_output **out;
-
-  printf("Available audio outputs:\n");
-  for (out = outputs; *out; out++)
-    printf("    %s%s\n", (*out)->name, out == outputs ? " (default)" : "");
-
-  for (out = outputs; *out; out++) {
-    printf("\n");
-    printf("Options for output %s:\n", (*out)->name);
-    (*out)->help();
-  }
-}
+//void audio_ls_outputs(void) {
+//  audio_output **out;
+//
+//  printf("Available audio outputs:\n");
+//  for (out = outputs; *out; out++)
+//    printf("    %s%s\n", (*out)->name, out == outputs ? " (default)" : "");
+//
+//  for (out = outputs; *out; out++) {
+//    printf("\n");
+//    printf("Options for output %s:\n", (*out)->name);
+//    (*out)->help();
+//  }
+//}

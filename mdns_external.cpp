@@ -24,6 +24,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "config.h"
+#ifdef CONFIG_HAVE_DNS_SD_H
+
 #include <unistd.h>
 #include <signal.h>
 #include <fcntl.h>
@@ -160,3 +163,6 @@ mdns_backend mdns_external_avahi = {.name = "external-avahi",
 mdns_backend mdns_external_dns_sd = {.name = "external-dns-sd",
                                      .mdns_register = mdns_external_dns_sd_register,
                                      .mdns_unregister = kill_mdns_child};
+
+#endif
+

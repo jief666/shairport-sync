@@ -19,6 +19,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "config.h"
+#ifdef CONFIG_SNDIO
+
+
 #include <stdio.h>
 #include <unistd.h>
 #include <sndio.h>
@@ -87,3 +91,5 @@ audio_output audio_sndio = {.name = "sndio",
                             .volume = &volume,
                             .parameters = NULL,
                             .mute= NULL};
+
+#endif

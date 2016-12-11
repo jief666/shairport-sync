@@ -24,6 +24,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "config.h"
+#ifdef CONFIG_ALSA
+
+
 #define ALSA_PCM_NEW_HW_PARAMS_API
 
 #include <stdio.h>
@@ -848,3 +852,5 @@ static void mute(int do_mute) {
   }
   pthread_mutex_unlock(&alsa_mutex);
 }
+
+#endif

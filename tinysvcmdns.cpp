@@ -30,6 +30,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+#ifdef CONFIG_TINYSVCMDNS
+
+
+
+
+
 #include "tinysvcmdns.h"
 #include "common.h"
 
@@ -1659,3 +1666,6 @@ void mdnsd_stop(struct mdnsd *s) {
 
   free(s);
 }
+
+#endif
+

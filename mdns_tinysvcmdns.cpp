@@ -24,6 +24,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "config.h"
+#ifdef CONFIG_TINYSVCMDN
+
+
+
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -155,3 +160,6 @@ static void mdns_tinysvcmdns_unregister(void) {
 mdns_backend mdns_tinysvcmdns = {.name = "tinysvcmdns",
                                  .mdns_register = mdns_tinysvcmdns_register,
                                  .mdns_unregister = mdns_tinysvcmdns_unregister};
+
+
+#endif

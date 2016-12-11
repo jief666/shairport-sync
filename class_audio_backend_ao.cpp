@@ -24,23 +24,54 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "class_audio_backend_ao.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <memory.h>
 #include <ao/ao.h>
+
 #include "common.h"
 #include "audio.h"
 
-ao_device *dev = NULL;
+/*
+ * class_audio_ao.cpp
+ *
+ *  Created on: Nov 11, 2016
+ *      Author: jief
+ */
 
-static void help(void) {
+
+class_audio_backend *class_audio_ao_new_instance(int argc, char **argv) { return new class_audio_backend_ao(argc, argv); }
+int class_audio_ao_global = register_audio_backend(new class_audio_backend_entry_points("class_audio_ao", class_audio_ao_new_instance, &class_audio_backend_ao::help));
+
+
+
+
+void class_audio_backend_ao::help(void)
+{
   printf("    -d driver           set the output driver\n"
          "    -o name=value       set an arbitrary ao option\n"
          "    -i id               shorthand for -o id=<id>\n"
          "    -n name             shorthand for -o dev=<name> -o dsp=<name>\n");
 }
 
-static int init(int argc, char **argv) {
+
+
+class_audio_backend_ao::~class_audio_backend_ao()
+{
+	  if (dev) ao_close(dev);
+	  dev = NULL;
+	  ao_shutdown();
+}
+
+
+class_audio_backend_ao::class_audio_backend_ao(int argc, char **argv)
+{
+  // init members
+  dev = NULL;
+
+  // constructor
   const char *str;
   int value;
   ao_initialize();
@@ -123,35 +154,17 @@ static int init(int argc, char **argv) {
   fmt.byte_format = AO_FMT_NATIVE;
 
   dev = ao_open_live(driver, &fmt, ao_opts);
-
-  return dev ? 0 : 1;
 }
 
-static void deinit(void) {
-  if (dev)
-    ao_close(dev);
-  dev = NULL;
-  ao_shutdown();
-}
-
-static void start(int sample_rate) {
+void class_audio_backend_ao::start(int sample_rate) {
   if (sample_rate != 44100)
     die("unexpected sample rate!");
 }
 
-static void play(short buf[], int samples) { ao_play(dev, (char *)buf, samples * 4); }
+void class_audio_backend_ao::play(short buf[], int samples)
+{
+	ao_play(dev, (char *)buf, samples * 4);
+}
 
-static void stop(void) {}
+void class_audio_backend_ao::stop(void) {}
 
-audio_output audio_ao = {.name = "ao",
-                         .help = &help,
-                         .init = &init,
-                         .deinit = &deinit,
-                         .start = &start,
-                         .stop = &stop,
-                         .flush = NULL,
-                         .delay = NULL,
-                         .play = &play,
-                         .volume = NULL,
-                         .parameters = NULL,
-                         .mute = NULL};
