@@ -166,5 +166,3 @@ void class_audio_backend_ao::play(short buf[], int samples)
 	ao_play(dev, (char *)buf, samples * 4);
 }
 
-void class_audio_backend_ao::stop(void) {}
-

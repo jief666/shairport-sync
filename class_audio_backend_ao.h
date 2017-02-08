@@ -26,7 +26,6 @@ public:
 	static void help(void);
 
 	virtual void start(int sample_rate);
-	virtual void stop(void);
 	virtual void play(short buf[], int samples);
 
 };
